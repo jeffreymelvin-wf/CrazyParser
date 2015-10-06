@@ -8,7 +8,7 @@ the results are mailed off for review and blocking in your web proxy.
 
     Dependencies:
         mydomains.csv
-            This file contains a list of domains you wish to monitor. 
+            This file contains a list of domains you wish to monitor.
 
         knowndomains.csv
             This file contains domains already identified from previous
@@ -41,130 +41,126 @@ import subprocess
 import csv
 import smtplib
 import tempfile
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email import Encoders
 import atexit
 
-urlcrazyPath = '/usr/bin/urlcrazy' # update if your installation differs
-dnstwistPath = '/opt/dnstwist/dnstwist.py' # update if your installation differs
+URL_CRAZY_PATH = '/usr/bin/urlcrazy' # update if your installation differs
+DNS_TWIST_PATH = '/opt/dnstwist/dnstwist.py' # update if your installation differs
 
 # set up global defaults
-tempFiles = [] # define temporary files array
+TEMP_FILES = [] # define temporary files array
 
-def checkPerms(docRoot, resultsFile):
-    # Test if we have execute permissions to docRoot
-    if not os.access(docRoot, os.X_OK):
-        print "Destination directory " + docRoot + " not accessible."
+def check_perms(doc_root, results_file):
+    # Test if we have execute permissions to doc_root
+    if not os.access(doc_root, os.X_OK):
+        print "Destination directory " + doc_root + " not accessible."
         print "Please check permissions.  Exiting..."
         sys.exit()
     else:
         pass
 
-    # Test if we have write permissions to docRoot
+    # Test if we have write permissions to doc_root
     try:
-        permtest = tempfile.TemporaryFile('w+b', bufsize=-1, dir=docRoot)
+        permtest = tempfile.TemporaryFile('w+b', bufsize=-1, dir=doc_root)
     except OSError:
-        print "Unable to write to desired directory: " + docRoot + "."
+        print "Unable to write to desired directory: " + doc_root + "."
         print "Please check permissions.  Exiting..."
         sys.exit()
 
-def checkDepends(myDomains, knownDomains, docRoot, resultsFile, urlcrazy, dnstwist):
+def check_depends(my_domains, known_domains, doc_root, results_file, urlcrazy, dnstwist):
     # Test if mydomains.csv exists
-    if not os.access(myDomains, os.F_OK) or not os.access(knownDomains, os.F_OK):
+    if not os.access(my_domains, os.F_OK) or not os.access(known_domains, os.F_OK):
         print "Required configuration files - mydomains.csv or knowndomains.csv - not found."
         print "Please verify configuration.  Exiting..."
         sys.exit()
     else:
         pass
 
-    # Test if docRoot is actually a directory
-    if not os.path.isdir(docRoot):
-        print "Argument: -d " + docRoot + " is not a directory."
+    # Test if doc_root is actually a directory
+    if not os.path.isdir(doc_root):
+        print "Argument: -d " + doc_root + " is not a directory."
         print "Please review arguments.  Exiting..."
         sys.exit()
     else:
         pass
 
     # Ensure resultsFile isn't actually a directory
-    if os.path.exists(resultsFile) and not os.path.isfile(resultsFile):
-    #if not os.path.isfile(resultsFile):
-        print "Argument: -o " + resultsFile + " should be a regular file but is something else."
+    if os.path.exists(results_file) and not os.path.isfile(results_file):
+    #if not os.path.isfile(results_file):
+        print "Argument: -o " + results_file + " should be a regular file but is something else."
         print "Please review arguments.  Exiting..."
         sys.exit()
     else:
         pass
-        
+
     # Test if urlcrazy exists
     if urlcrazy:
-        if not os.access(urlcrazyPath, os.F_OK):
-            print "URLCrazy specified as " + urlcrazyPath + " but was not found."
+        if not os.access(URL_CRAZY_PATH, os.F_OK):
+            print "URLCrazy specified as " + URL_CRAZY_PATH + " but was not found."
             print "Please check urlcrazyPath in crazyParser.py.  Exiting..."
             sys.exit()
 
     # Test if dnstwist exists
     if dnstwist:
-        if not os.access(dnstwistPath, os.F_OK):
-            print "DNStwist specified as " + dnstwistPath + "but was not found."
+        if not os.access(DNS_TWIST_PATH, os.F_OK):
+            print "DNStwist specified as " + DNS_TWIST_PATH + "but was not found."
             print "Please check urlcrazyPath in crazyParser.py.  Exiting..."
             sys.exit()
-                 
-def doCrazy(docRoot, resultsFile, myDomains, urlcrazy, dnstwist):
+
+def do_crazy(doc_root, results_file, my_domains, urlcrazy, dnstwist):
     # cleanup old results file
     try:
-        os.remove(resultsFile)
+        os.remove(results_file)
     except OSError:
         pass
-    
-    with open(myDomains, 'rbU') as domains:
+
+    with open(my_domains, 'rbU') as domains:
         reader = csv.reader(domains)
         for domain in domains:
             domain = domain.rstrip()
 
             # Run urlcrazy if enabled
             if urlcrazy:
-                ucoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.uctmp', prefix=domain + '.', dir=docRoot, delete=False)
-                ucargs=[urlcrazyPath, '-f', 'csv', '-o', ucoutfile.name, domain]
+                ucoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.uctmp', prefix=domain + '.', dir=doc_root, delete=False)
+                ucargs = [URL_CRAZY_PATH, '-f', 'csv', '-o', ucoutfile.name, domain]
                 try:
                     with open(os.devnull, 'w') as devnull:
                         subprocess.call(ucargs, stdout=devnull, close_fds=True, shell=False)
-                        tempFiles.append(ucoutfile.name)
+                        TEMP_FILES.append(ucoutfile.name)
                 except:
                     # An error occurred running urlcrazy
                     print "Unexpected error running urlcrazy:", sys.exc_info()[0]
                     pass
 
             # Run dnstwist if enabled
-            dtargs=[dnstwistPath, '-r', '-c', domain]
+            dtargs = [DNS_TWIST_PATH, '-r', '-c', domain]
             if dnstwist:
-                dtoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.dttmp', prefix=domain + '.', dir=docRoot, delete=False)
+                dtoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.dttmp', prefix=domain + '.', dir=doc_root, delete=False)
                 try:
                     with open(dtoutfile.name, 'wb') as dtout:
-                        output=subprocess.check_output(dtargs, shell=False)
+                        output = subprocess.check_output(dtargs, shell=False)
                         dtout.write(output)
-                    tempFiles.append(dtoutfile.name)
+                    TEMP_FILES.append(dtoutfile.name)
                 except:
                     # An error occurred running dnstwist
                     print "Unexpected error running dnstwist:", sys.exc_info()[0]
                     pass
-    
-def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
+
+def parse_output(doc_root, known_domains, results_file, urlcrazy, dnstwist):
     # set up domains dictionary
     domains = []
 
     # compare known domains to discovered domains
     knowndom = []
-    with open (knownDomains, 'rbU') as domfile:
+    with open(known_domains, 'rbU') as domfile:
         reader = csv.DictReader(domfile)
         for row in reader:
             knowndom.append(row['Domain'])
 
     if urlcrazy:
         # Parse each urlcrazy temp file in tempFiles list
-        for file in tempFiles:
+        for file in TEMP_FILES:
             if file.endswith(".uctmp"):
-                with open (file, 'rbU') as csvfile:
+                with open(file, 'rbU') as csvfile:
                     reader = csv.DictReader(row.replace('\0', '') for row in csvfile)
                     for row in reader:
                         if len(row) != 0:
@@ -176,9 +172,9 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
 
     if dnstwist:
         # Parse each dnstwist temp file in tempFiles list
-        for file in tempFiles:
+        for file in TEMP_FILES:
             if file.endswith(".dttmp"):
-                with open (file, 'rbU') as csvfile:
+                with open(file, 'rbU') as csvfile:
                     reader = csv.reader(csvfile)
                     next(reader) # Due to recent change in dnstwist, skip header line
                     next(reader) # skip second line, contains original domain
@@ -187,13 +183,13 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
                             pass
                         else:
                             domains.append(row[1])
-                        
+
     # dedupe domains list
     domains = dedup(domains)
-    
+
     # write out results
     # this file will only contain the header if there are no new results
-    with open(resultsFile, 'wb') as outfile:
+    with open(results_file, 'wb') as outfile:
         fieldnames = ['Domain']
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -201,9 +197,9 @@ def parseOutput(docRoot, knownDomains, resultsFile, urlcrazy, dnstwist):
             writer.writerow({'Domain': row})
     outfile.close()
 
-def sendMail(resultsFile):
+def send_mail(results_file):
     '''
-            sendMail sends the results of urlcrazy scans,
+            send_mail sends the results of urlcrazy scans,
             including diffs to your selected address
             using a given address.
 
@@ -211,7 +207,7 @@ def sendMail(resultsFile):
             Specify your account password in mail_pwd.
 
             Configure for your mail server by modifying the
-            mailServer = line.
+            mail)_erver = line.
 
             This assumes your mail server supports starttls.
             Future versions will allow you to specify whether
@@ -224,7 +220,7 @@ def sendMail(resultsFile):
     mail_pwd = "your_pass_here"
     mail_recip = ["recipient_address_1", "recipient_address_2"]
 
-    def mail(to, subject, text, resultsFile, numResults):
+    def mail(to, subject, text, results_file, num_results):
             msg = MIMEMultipart()
 
             msg['From'] = mail_user
@@ -236,41 +232,41 @@ def sendMail(resultsFile):
             # Attach the attachment if there are new results
             # numResults is the number of rows in the results file
             # This is always at least 1 due to the header row
-            if numResults >= 2:
+            if num_results >= 2:
                 part = MIMEBase('application', 'octet-stream')
-                part.set_payload(open(resultsFile, 'rb').read())
+                part.set_payload(open(results_file, 'rb').read())
                 Encoders.encode_base64(part)
                 part.add_header('Content-Disposition',
-                        'attachment; filename="%s"' % os.path.basename(resultsFile))
+                        'attachment; filename="%s"' % os.path.basename(results_file))
                 msg.attach(part)
             else:
                 pass
 
-            mailServer = smtplib.SMTP("smtp.gmail.com", 587)
-            mailServer.ehlo()
-            mailServer.starttls()
-            mailServer.ehlo()
-            mailServer.login(mail_user, mail_pwd)
-            mailServer.sendmail(mail_user, to, msg.as_string())
-            mailServer.close()
-    
+            mail_server = smtplib.SMTP("smtp.gmail.com", 587)
+            mail_server.ehlo()
+            mail_server.starttls()
+            mail_server.ehlo()
+            mail_server.login(mail_user, mail_pwd)
+            mail_server.sendmail(mail_user, to, msg.as_string())
+            mail_server.close()
+
     # this counts the number of line in the results file
     # if it is 1, there were no results
-    numResults = sum(1 for line in open(resultsFile))
-    if numResults == 1:
+    num_results = sum(1 for line in open(results_file))
+    if num_results == 1:
         mail(mail_recip,
                 "Daily DNS typosquatting recon report", # subject line
                 "There were no new results in today's scan", # your message here
-                resultsFile, numResults)
+                results_file, num_results)
     else:
         mail(mail_recip,
                 "Daily DNS typosquatting recon report", # subject line
                 "The results from today's DNS typosquatting scan are attached", # your message here
-                resultsFile, numResults)
+                results_file, num_results)
 
-def doCleanup(docRoot):
+def do_cleanup(doc_root):
     # Delete all temporary .tmp files created by urlcrazy and dnstwist
-    for f in tempFiles:
+    for f in TEMP_FILES:
         try:
             os.remove(f)
         except OSError:
@@ -279,12 +275,14 @@ def doCleanup(docRoot):
 
 def dedup(domainslist, idfun=None): # code from http://www.peterbe.com/plog/uniqifiers-benchmark
     if idfun is None:
-        def idfun(x): return x
+        def idfun(x):
+            return x
     seen = {}
     result = []
     for item in domainslist:
         marker = idfun(item)
-        if marker in seen: continue
+        if marker in seen:
+            continue
         seen[marker] = 1
         result.append(item)
     return result
@@ -299,54 +297,58 @@ def main():
     parser.add_argument('--dnstwist', help='Use dnstwist for domain discovery, defaults to False', action="store_true", default=False, required=False)
     parser.add_argument('--urlcrazy', help='Use urlcray for domain discovery, defaults to False', action="store_true", default=False, required=False)
 
-    if  len(sys.argv)==1:
+    if  len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
 
     if args.config != os.getcwd():
         if os.path.isdir(args.config):
-            configDir = args.config
+            config_dir = args.config
         else:
             print "ERROR! Specified configuration directory " + args.config + " does not exist!"
             print "Exiting..."
             sys.exit()
     else:
-        configDir = args.config
+        config_dir = args.config
 
     if args.directory != os.getcwd():
         if os.path.isdir(args.directory):
-            docRoot = args.directory
+            doc_root = args.directory
         else:
             print "ERROR! Specified output directory " + args.directory + " does not exist!"
             print "Exiting..."
             sys.exit()
     else:
-        docRoot = args.directory
+        doc_root = args.directory
 
     # set up global files
-    resultsFile = os.path.join(docRoot, args.output)
-    myDomains = os.path.join(configDir,'mydomains.csv')
-    knownDomains = os.path.join(configDir,'knowndomains.csv')
+    results_file = os.path.join(doc_root, args.output)
+    my_domains = os.path.join(config_dir, 'mydomains.csv')
+    known_domains = os.path.join(config_dir, 'knowndomains.csv')
 
     # Check to make sure we have the necessary permissions
-    checkPerms(docRoot, resultsFile)
+    check_perms(doc_root, results_file)
 
     # Check dependencies
-    checkDepends(myDomains, knownDomains, docRoot, resultsFile, args.urlcrazy, args.dnstwist)
+    check_depends(my_domains, known_domains, doc_root, results_file, args.urlcrazy, args.dnstwist)
 
     # Clean up output files at exit
-    atexit.register(doCleanup, docRoot)
-    
+    atexit.register(do_cleanup, doc_root)
+
     # Execute discovery
-    doCrazy(docRoot, resultsFile, myDomains, args.urlcrazy, args.dnstwist)
+    do_crazy(doc_root, results_file, my_domains, args.urlcrazy, args.dnstwist)
 
     # parse output
-    parseOutput(docRoot, knownDomains, resultsFile, args.urlcrazy, args.dnstwist)
+    parse_output(doc_root, known_domains, results_file, args.urlcrazy, args.dnstwist)
 
     # send results if -m/--email is true
     if args.email == True:
-        sendMail(resultsFile)
+        from email.MIMEMultipart import MIMEMultipart
+        from email.MIMEBase import MIMEBase
+        from email.MIMEText import MIMEText
+        from email import Encoders
+        send_mail(results_file)
     else:
         pass
 
