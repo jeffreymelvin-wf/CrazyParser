@@ -43,8 +43,9 @@ import smtplib
 import tempfile
 import atexit
 
-URL_CRAZY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'urlcrazy-0.5', 'urlcrazy')
-DNS_TWIST_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dnstwist', 'dnstwist.py')
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+URL_CRAZY_PATH = os.path.join(SCRIPT_DIR, 'urlcrazy-0.5', 'urlcrazy')
+DNS_TWIST_PATH = os.path.join(SCRIPT_DIR, 'dnstwist', 'dnstwist.py')
 
 # set up global defaults
 TEMP_FILES = [] # define temporary files array
@@ -274,9 +275,8 @@ def dedup(domainslist, idfun=None): # code from http://www.peterbe.com/plog/uniq
 def main():
     # Set up parser for command line arguments
     parser = argparse.ArgumentParser(prog='crazyParser.py', description='crazyParser - a tool to detect new typosquatted domain registrations by using the output from dnstwist and/or urlcrazy', add_help=True)
-    parser.add_argument('-c', '--config', help='Directory location for required config files', default=os.getcwd(), required=False)
-    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default='results.csv', required=False)
-    parser.add_argument('-d', '--directory', help='Directory for saving output, defaults to current directory', default=os.getcwd(), required=False)
+    parser.add_argument('-c', '--config', help='Directory location for required config files', default=SCRIPT_DIR, required=False)
+    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default=os.path.join(SCRIPT_DIR, 'results.csv'), required=False)
     parser.add_argument('-m', '--email', help='Email results upon completion, defaults to False', action="store_true", default=False, required=False)
     parser.add_argument('--dnstwist', help='Use dnstwist for domain discovery, defaults to False', action="store_true", default=False, required=False)
     parser.add_argument('--urlcrazy', help='Use urlcray for domain discovery, defaults to False', action="store_true", default=False, required=False)
@@ -293,7 +293,7 @@ def main():
         sys.exit(1)
 
 
-    doc_root = os.path.realpath(os.path.expanduser(args.directory))
+    doc_root = os.path.dirname(os.path.realpath(os.path.expanduser(args.output)))
     if not os.path.isdir(doc_root):
         print "ERROR! Specified output directory " + args.directory + " does not exist!"
         print "Exiting..."
@@ -301,7 +301,7 @@ def main():
 
 
     # set up global files
-    results_file = os.path.join(doc_root, args.output)
+    results_file = args.output
     my_domains = os.path.join(config_dir, 'mydomains.csv')
     known_domains = os.path.join(config_dir, 'knowndomains.csv')
 
