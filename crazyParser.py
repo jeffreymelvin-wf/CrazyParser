@@ -129,7 +129,7 @@ def do_crazy(doc_root, results_file, my_domains, urlcrazy, dnstwist):
                     # An error occurred running dnstwist
                     print "Unexpected error running dnstwist:", sys.exc_info()[0]
 
-def parse_output(doc_root, known_domains, results_file, urlcrazy, dnstwist):
+def parse_output(known_domains, results_file, urlcrazy, dnstwist):
     # set up domains dictionary
     domains = []
 
@@ -318,7 +318,7 @@ def main():
     do_crazy(doc_root, results_file, my_domains, args.urlcrazy, args.dnstwist)
 
     # parse output
-    parse_output(doc_root, known_domains, results_file, args.urlcrazy, args.dnstwist)
+    parse_output(known_domains, results_file, args.urlcrazy, args.dnstwist)
 
     # send results if -m/--email is true
     if args.email == True:
