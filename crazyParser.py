@@ -107,12 +107,12 @@ def do_crazy(doc_root, results_file, my_domains, urlcrazy, dnstwist):
 
             # Run urlcrazy if enabled
             if urlcrazy:
-                ucoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.uctmp', prefix=domain + '.', dir=doc_root, delete=False)
-                ucargs = [URL_CRAZY_PATH, '-f', 'csv', '-o', ucoutfile.name, domain]
+                _, ucoutfile = tempfile.mkstemp(suffix='.uctmp', prefix=domain + '.')
+                ucargs = [URL_CRAZY_PATH, '-f', 'csv', '-o', ucoutfile, domain]
                 try:
                     with open(os.devnull, 'w') as devnull:
                         subprocess.call(ucargs, stdout=devnull, close_fds=True, shell=False)
-                        TEMP_FILES.append(ucoutfile.name)
+                        TEMP_FILES.append(ucoutfile)
                 except:
                     # An error occurred running urlcrazy
                     print "Unexpected error running urlcrazy:", sys.exc_info()[0]
@@ -120,12 +120,12 @@ def do_crazy(doc_root, results_file, my_domains, urlcrazy, dnstwist):
             # Run dnstwist if enabled
             dtargs = [DNS_TWIST_PATH, '-r', '-c', domain]
             if dnstwist:
-                dtoutfile = tempfile.NamedTemporaryFile('w', bufsize=-1, suffix='.dttmp', prefix=domain + '.', dir=doc_root, delete=False)
+                _, dtoutfile = tempfile.mkstemp(suffix='.dttmp', prefix=domain + '.')
                 try:
-                    with open(dtoutfile.name, 'wb') as dtout:
+                    with open(dtoutfile, 'wb') as dtout:
                         output = subprocess.check_output(dtargs, shell=False)
                         dtout.write(output)
-                    TEMP_FILES.append(dtoutfile.name)
+                    TEMP_FILES.append(dtoutfile)
                 except:
                     # An error occurred running dnstwist
                     print "Unexpected error running dnstwist:", sys.exc_info()[0]
@@ -169,7 +169,7 @@ def parse_output(known_domains, results_file, urlcrazy, dnstwist):
                         else:
                             domains.append(row[1])
 
-    # dedupe domains list
+    # dedup domains list
     domains = dedup(domains)
 
     # write out results
@@ -256,7 +256,6 @@ def do_cleanup(doc_root):
             os.remove(f)
         except OSError:
             print "Error removing temporary file: " + f
-            pass
 
 def dedup(domainslist, idfun=None): # code from http://www.peterbe.com/plog/uniqifiers-benchmark
     if idfun is None:
