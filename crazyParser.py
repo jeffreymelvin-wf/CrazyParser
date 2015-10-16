@@ -42,6 +42,7 @@ import csv
 import smtplib
 import tempfile
 import atexit
+import json
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 URL_CRAZY_PATH = os.path.join(SCRIPT_DIR, 'urlcrazy-0.5', 'urlcrazy')
@@ -171,15 +172,18 @@ def parse_output(known_domains, results_file, urlcrazy, dnstwist):
 
     # dedup domains list
     domains = dedup(domains)
+    domains = [dict(domain=x) for x in domains]
 
     # write out results
     # this file will only contain the header if there are no new results
     with open(results_file, 'wb') as outfile:
-        fieldnames = ['Domain']
-        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in domains:
-            writer.writerow({'Domain': row})
+        # fieldnames = ['Domain']
+        # writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+        # writer.writeheader()
+        # for row in domains:
+        #     writer.writerow({'Domain': row})
+        for domain in domains:
+            outfile.write(json.dumps(domain) + '\n')
     outfile.close()
 
 def send_mail(results_file):
@@ -275,7 +279,7 @@ def main():
     # Set up parser for command line arguments
     parser = argparse.ArgumentParser(prog='crazyParser.py', description='crazyParser - a tool to detect new typosquatted domain registrations by using the output from dnstwist and/or urlcrazy', add_help=True)
     parser.add_argument('-c', '--config', help='Directory location for required config files', default=SCRIPT_DIR, required=False)
-    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default=os.path.join(SCRIPT_DIR, 'results.csv'), required=False)
+    parser.add_argument('-o', '--output', help='Save results to file, defaults to results.csv', default=os.path.join(SCRIPT_DIR, 'results.json'), required=False)
     parser.add_argument('-m', '--email', help='Email results upon completion, defaults to False', action="store_true", default=False, required=False)
     parser.add_argument('--dnstwist', help='Use dnstwist for domain discovery, defaults to False', action="store_true", default=False, required=False)
     parser.add_argument('--urlcrazy', help='Use urlcray for domain discovery, defaults to False', action="store_true", default=False, required=False)
