@@ -166,7 +166,9 @@ def parse_output(known_domains, results_file, urlcrazy, dnstwist):
 
     # dedup domains list
     domains = dedup(domains)
-    oldfile = results_file + ".last"
+    basename = os.path.basename(results_file).rsplit('.', 1)
+    basename.insert(1, 'last')
+    oldfile = os.path.join(os.path.dirname(results_file), '.'.join(basename))
 
     if os.path.exists(results_file):
         try:
